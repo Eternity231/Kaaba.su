@@ -143,7 +143,6 @@ void Resolver::UpdateResolverStage( AnimationRecord* pRecord ) {
 
 	// allow lby flicks on override
 	// also important allow override to override moving players because of the retard
-	// low dopium kid dogs shit faggots who use their shitty exploit =D
 	if( g_Vars.rage.antiaim_correction_override.enabled && !bInPredictionStage ) {
 		resolverData.m_eCurrentStage = EResolverStages::RESOLVE_MODE_OVERRIDE;
 		pRecord->m_AnimationFlags &= ~ELagRecordFlags::RF_IsResolved;
