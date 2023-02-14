@@ -34,7 +34,7 @@ void Resolver::UpdateLBYPrediction( AnimationRecord* pRecord ) {
 
 	resolverData.m_flPreviousLowerBodyYaw = pRecord->m_flLowerBodyYawTarget;
 
-	/*auto layer3 = Encrypted_t(&pRecord->m_pServerAnimOverlays[3]);
+	auto layer3 = Encrypted_t(&pRecord->m_pServerAnimOverlays[3]);
 
 	int layer_3_activity = pRecord->m_pEntity->GetSequenceActivity(layer3->m_nSequence);
 
@@ -47,26 +47,26 @@ void Resolver::UpdateLBYPrediction( AnimationRecord* pRecord ) {
 	{
 		resolverData.m_iDetectedBodyUpdate = 2;
 		resolverData.m_flLowerBodyRealignTimer = pRecord->m_flAnimationTime - (layer3->m_flCycle / layer3->m_flPlaybackRate);
-	}*/
+	}
 
-	//resolverData.m_flLastLbyActivity = layer_3_activity;
+	resolverData.m_flLastLbyActivity = layer_3_activity;
 
-	//if(resolverData.m_iDetectedBodyUpdate == 0) 
-	//{
-	//	// we don't have any last move data, perform basic bruteforce
-	//	if( resolverData.m_vecLastMoveOrigin.IsZero( ) ) {
-	//		pRecord->m_AnimationFlags &= ~ELagRecordFlags::RF_LBYFlicked;
-	//		resolverData.ResetPredData( );
-	//		return;
-	//	}
+	  if(resolverData.m_iDetectedBodyUpdate == 0) 
+	  {
+		// we don't have any last move data, perform basic bruteforce
+		if( resolverData.m_vecLastMoveOrigin.IsZero( ) ) {
+			pRecord->m_AnimationFlags &= ~ELagRecordFlags::RF_LBYFlicked;
+			resolverData.ResetPredData( );
+			return;
+		}
 
-	//	// last move origin is too far away, the enemy has moved when we haven't seen them(?)
-	//	if( ( resolverData.m_vecLastMoveOrigin - pRecord->m_vecOrigin ).Length( ) > 128.f ) {
-	//		pRecord->m_AnimationFlags &= ~ELagRecordFlags::RF_LBYFlicked;
-	//		resolverData.ResetPredData( );
-	//		return;
-	//	}
-	//}
+		// last move origin is too far away, the enemy has moved when we haven't seen them(?)
+		if( ( resolverData.m_vecLastMoveOrigin - pRecord->m_vecOrigin ).Length( ) > 128.f ) {
+			pRecord->m_AnimationFlags &= ~ELagRecordFlags::RF_LBYFlicked;
+			resolverData.ResetPredData( );
+			return;
+		}
+	  }
 
 	if( pRecord->m_flAnimationTime >= resolverData.m_flLowerBodyRealignTimer && resolverData.m_flLowerBodyRealignTimer < FLT_MAX )
 	{
@@ -76,50 +76,43 @@ void Resolver::UpdateLBYPrediction( AnimationRecord* pRecord ) {
 		pRecord->m_AnimationFlags |= ELagRecordFlags::RF_LBYFlicked;
 	}
 
-	//// this will be called on first init too, obviously
-	//if( resolverData.m_flPreviousLowerBodyYaw != pRecord->m_flLowerBodyYawTarget ) {
+	if (resolverData.m_flPreviousLowerBodyYaw != pRecord->m_flLowerBodyYawTarget) {
 
-	//	// make sure not to call these on first init
-	//	if( resolverData.m_flPreviousLowerBodyYaw != FLT_MAX ) {
-	//		resolverData.m_flLowerBodyRealignTimer = pRecord->m_flAnimationTime + 1.1f;
+		if (resolverData.m_flPreviousLowerBodyYaw != FLT_MAX) {
+			resolverData.m_flLowerBodyRealignTimer = pRecord->m_flAnimationTime + 1.1f;
 
-	//		pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget;
+			pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget;
 
-	//		resolverData.m_bDetectedBodyUpdate = true;
-	//	}
+			resolverData.m_iDetectedBodyUpdate = true;
+		}
 
-	//	resolverData.m_flPreviousLowerBodyYaw = pRecord->m_flLowerBodyYawTarget;
-	//}
+		resolverData.m_flPreviousLowerBodyYaw = pRecord->m_flLowerBodyYawTarget;
+	}
 
-	//// if we detected a lower body update, allow prediction
-	//if( !resolverData.m_bDetectedBodyUpdate ) {
-	//	// we don't have any last move data, perform basic bruteforce
-	//	if( resolverData.m_vecLastMoveOrigin.IsZero( ) ) {
-	//		pRecord->m_AnimationFlags &= ~ELagRecordFlags::RF_LBYFlicked;
-	//		resolverData.ResetPredData( );
-	//		return;
-	//	}
+	if (!resolverData.m_iDetectedBodyUpdate) {
+		if (resolverData.m_vecLastMoveOrigin.IsZero()) {
+			pRecord->m_AnimationFlags &= ~ELagRecordFlags::RF_LBYFlicked;
+			resolverData.ResetPredData();
+			return;
+		}
 
-	//	// last move origin is too far away, the enemy has moved when we haven't seen them(?)
-	//	if( ( resolverData.m_vecLastMoveOrigin - pRecord->m_vecOrigin ).Length( ) > 128.f ) {
-	//		pRecord->m_AnimationFlags &= ~ELagRecordFlags::RF_LBYFlicked;
-	//		resolverData.ResetPredData( );
-	//		return;
-	//	}
-	//}
+		if ((resolverData.m_vecLastMoveOrigin - pRecord->m_vecOrigin).Length() > 128.f) {
+			pRecord->m_AnimationFlags &= ~ELagRecordFlags::RF_LBYFlicked;
+			resolverData.ResetPredData();
+			return;
+		}
+	}
 
-	//// we have valid move data, attempt to predict
+	if (pRecord->m_vecVelocity.Length() > 0.1f && !(pRecord->m_AnimationFlags & ELagRecordFlags::RF_FakeWalking)) {
+		resolverData.m_flLowerBodyRealignTimer = pRecord->m_flAnimationTime + 0.22f;
+		resolverData.m_bInPredictionStage = false;
+	}
+	else if (pRecord->m_flAnimationTime >= resolverData.m_flLowerBodyRealignTimer) {
+		resolverData.m_flLowerBodyRealignTimer = pRecord->m_flAnimationTime + 1.1f;
 
-	//if( pRecord->m_vecVelocity.Length( ) > 0.1f && !( pRecord->m_AnimationFlags & ELagRecordFlags::RF_FakeWalking ) ) {
-	//	resolverData.m_flLowerBodyRealignTimer = pRecord->m_flAnimationTime + 0.22f;
-	//	resolverData.m_bInPredictionStage = false;
-	//}
-	//else if( pRecord->m_flAnimationTime >= resolverData.m_flLowerBodyRealignTimer ) {
-	//	resolverData.m_flLowerBodyRealignTimer = pRecord->m_flAnimationTime + 1.1f;
-
-	//	resolverData.m_bInPredictionStage = true;
-	//	pRecord->m_AnimationFlags |= ELagRecordFlags::RF_LBYFlicked;
-	//}
+		resolverData.m_bInPredictionStage = true;
+		pRecord->m_AnimationFlags |= ELagRecordFlags::RF_LBYFlicked;
+	}
 }
 
 void Resolver::UpdateResolverStage( AnimationRecord* pRecord ) {

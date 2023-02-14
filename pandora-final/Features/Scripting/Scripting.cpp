@@ -6,7 +6,7 @@
 
 #include "../Visuals/EventLogger.hpp"
 #include <filesystem>
-
+#define LUA_SCRIPTING LUA_SCRIPTING
 #include <fstream>
 
 namespace Scripting {

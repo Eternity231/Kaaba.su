@@ -5,6 +5,7 @@
 #include "../../Menu/Framework/GUI.h"
 
 #include <mutex>
+#define LUA_SCRIPTING LUA_SCRIPTING
 
 
 namespace Scripting {
