@@ -70,6 +70,15 @@ struct ResolverData_t {
 	float m_flAnimationTime = FLT_MAX;
 };
 
+inline float NormalizeYaw(float yaw)
+{
+	while (yaw > 180.f)
+		yaw -= 360.f;
+	while (yaw < -180.f)
+		yaw += 360.f;
+	return yaw;
+};
+
 class Resolver {
 	void UpdateLBYPrediction( AnimationRecord* pRecord );
 	void UpdateResolverStage( AnimationRecord* pRecord );

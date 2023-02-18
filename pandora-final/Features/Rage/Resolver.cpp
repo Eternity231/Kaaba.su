@@ -8,8 +8,26 @@
 
 Resolver g_Resolver;
 
-void Resolver::UpdateLBYPrediction( AnimationRecord* pRecord ) {
-	auto& resolverData = m_arrResolverData.at( pRecord->m_pEntity->EntIndex( ) );
+void Resolver::UpdateLBYPrediction(AnimationRecord* pRecord) {
+	auto& resolverData = m_arrResolverData.at(pRecord->m_pEntity->EntIndex());
+
+	// check if LBY has updated
+	if (resolverData.m_flPreviousLowerBodyYaw != FLT_MAX && fabsf(pRecord->m_flLowerBodyYawTarget - resolverData.m_flPreviousLowerBodyYaw) > 30.f) {
+		resolverData.m_vecLastRealOrigin = pRecord->m_vecOrigin;
+	}
+
+	// update LBY prediction data
+	resolverData.m_flPreviousLowerBodyYaw = pRecord->m_flLowerBodyYawTarget;
+	resolverData.m_flLastLbyActivity = pRecord->m_flCycle;
+
+	// check if LBY and real angles are too different
+	float flAngleDiff = fabsf(NormalizeYaw(pRecord->m_flLowerBodyYawTarget - pRecord->m_angEyeAngles.y));
+	if (flAngleDiff > 30.f) {
+		Vector vecRealOrigin = resolverData.m_vecLastRealOrigin;
+		if (vecRealOrigin.IsZero()) {
+			// if we don't have the real origin yet, use predicted origin
+			vecRealOrigin = pRecord->m_vecOrigin + (pRecord->m_vecVelocity * g_pGlobalVars->interval_per_tick);
+		}
 
 	if( !pRecord )
 		return;
@@ -272,7 +290,10 @@ void Resolver::ResolveMove( AnimationRecord* pRecord ) {
 		resolverData.m_iMissedShotsLBY = 0;
 
 	pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget;
+
+	UpdateLBYPrediction( pRecord );
 }
+
 
 void Resolver::ResolveAir(AnimationRecord* pRecord) {
 	auto& resolverData = m_arrResolverData.at(pRecord->m_pEntity->EntIndex());
