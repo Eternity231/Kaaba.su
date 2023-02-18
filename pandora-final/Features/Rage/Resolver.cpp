@@ -184,43 +184,56 @@ void Resolver::ResolveBrute( AnimationRecord* pRecord ) {
 // todo - michal;
 // add some sort of per entity logging, where if the first stand resolver stage (last move lby)
 // fails on a target twice or more, then for that target do anti-freestanding for the first shot in the future
-void Resolver::ResolveStand( AnimationRecord* pRecord ) {
-	auto& resolverData = m_arrResolverData.at( pRecord->m_pEntity->EntIndex( ) );
+void Resolver::ResolveStand(AnimationRecord* pRecord) {
+	auto& resolverData = m_arrResolverData.at(pRecord->m_pEntity->EntIndex());
 
 	// we don't have any last move data, perform basic bruteforce
-	if( resolverData.m_vecLastMoveOrigin.IsZero( ) ) {
-		return ResolveBrute( pRecord );
+	if (resolverData.m_vecLastMoveOrigin.IsZero()) {
+		return ResolveBrute(pRecord);
 	}
 
 	// last move origin is too far away, the enemy has moved when we haven't seen them(?)
-	if( ( resolverData.m_vecLastMoveOrigin - pRecord->m_vecOrigin ).Length( ) > 128.f ) {
-		return ResolveBrute( pRecord );
+	if ((resolverData.m_vecLastMoveOrigin - pRecord->m_vecOrigin).Length() > 128.f) {
+		return ResolveBrute(pRecord);
 	}
 
 	float flAnimTimeDelta = pRecord->m_flAnimationTime - resolverData.m_flLastMoveAnimTime;
 
 	// the enemy still hasn't performed the first 0.22 lby flick
 	// until that flick happens, we can force lby
-	if( flAnimTimeDelta < 0.22f ) {
+	if (flAnimTimeDelta < 0.22f) {
 		pRecord->m_angEyeAngles.y = resolverData.m_flLastMoveBody;
 		return;
 	}
-
-	const float flMoveDelta = fabs( resolverData.m_flLastMoveBody - pRecord->m_flLowerBodyYawTarget );
-	const float flFreestandYaw = ResolveAntiFreestand( pRecord );
-
-	// we have valid move data, use it
+	
 	// note - michal;
 	// todo, if miss one shot, and then we hit properly (head or feet) on the anti-freestand
 	// stage then take note of this, and the next time anti-freestand for first shot instead of last move lby
+	if (resolverData.m_iMissedShots % 6 == 1 && flAnimTimeDelta > 0.22f) {
+		float flFreestandYaw = ResolveAntiFreestand(pRecord);
+		if (flFreestandYaw != FLT_MAX) {
+			pRecord->m_angEyeAngles.y = flFreestandYaw;
+			return;
+		}
+	}
 
+	const float flMoveDelta = fabs(resolverData.m_flLastMoveBody - pRecord->m_flLowerBodyYawTarget);
+	const float flFreestandYaw = ResolveAntiFreestand(pRecord);
+
+	// we have valid move data, use it
 	// of course if we then miss the anti-freestand shot, for next shot try shooting and last move lby
-	switch( resolverData.m_iMissedShots % 6 ) {
+	switch (resolverData.m_iMissedShots % 6) {
 	case 0:
 		pRecord->m_angEyeAngles.y = resolverData.m_flLastMoveBody;
 		break;
 	case 1:
-		pRecord->m_angEyeAngles.y = flFreestandYaw != FLT_MAX ? flFreestandYaw : resolverData.m_flLastMoveBody + 180.f;
+		if (flFreestandYaw != FLT_MAX) {
+			pRecord->m_angEyeAngles.y = flFreestandYaw;
+			return;
+		}
+		else {
+			pRecord->m_angEyeAngles.y = resolverData.m_flLastMoveBody + 180.f;
+		}
 		break;
 	case 2:
 		pRecord->m_angEyeAngles.y = resolverData.m_flLastMoveBody - 90.f;
