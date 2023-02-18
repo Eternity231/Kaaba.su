@@ -261,24 +261,24 @@ void Resolver::ResolveMove( AnimationRecord* pRecord ) {
 	pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget;
 }
 
-void Resolver::ResolveAir( AnimationRecord* pRecord ) {
-	auto& resolverData = m_arrResolverData.at( pRecord->m_pEntity->EntIndex( ) );
+void Resolver::ResolveAir(AnimationRecord* pRecord) {
+	auto& resolverData = m_arrResolverData.at(pRecord->m_pEntity->EntIndex());
 
-	const float flVelocityDirYaw = RAD2DEG( std::atan2( pRecord->m_vecVelocity.x, pRecord->m_vecVelocity.y ) );
+	const float flVelocityDirYaw = RAD2DEG(std::atan2(pRecord->m_vecVelocity.x, pRecord->m_vecVelocity.y));
 
-	auto pLocal = C_CSPlayer::GetLocalPlayer( );
-	if( !pLocal )
+	auto pLocal = C_CSPlayer::GetLocalPlayer();
+	if (!pLocal)
 		return;
 
 	QAngle angAway;
-	pLocal->IsDead( ) ? Vector( 0, 180, 0 ) : Math::VectorAngles( pLocal->m_vecOrigin( ) - pRecord->m_vecOrigin, angAway );
+	pLocal->IsDead() ? Vector(0, 180, 0) : Math::VectorAngles(pLocal->m_vecOrigin() - pRecord->m_pEntity->m_vecOrigin(), angAway);
 
-	switch( resolverData.m_iMissedShots % 4 ) {
+	switch (resolverData.m_iMissedShots % 4) {
 	case 0:
 		pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget;
 		break;
 	case 1:
-		if( resolverData.m_flLastMoveBody < FLT_MAX && abs( Math::AngleDiff( pRecord->m_flLowerBodyYawTarget, resolverData.m_flLastMoveBody ) ) > 60.f )
+		if (resolverData.m_flLastMoveBody < FLT_MAX && abs(Math::AngleDiff(pRecord->m_flLowerBodyYawTarget, resolverData.m_flLastMoveBody)) > 60.f)
 			pRecord->m_angEyeAngles.y = resolverData.m_flLastMoveBody;
 		else
 			pRecord->m_angEyeAngles.y = angAway.y + 180.f;
@@ -291,6 +291,7 @@ void Resolver::ResolveAir( AnimationRecord* pRecord ) {
 		break;
 	}
 }
+
 
 void Resolver::ResolvePred( AnimationRecord* pRecord ) {
 	auto& resolverData = m_arrResolverData.at( pRecord->m_pEntity->EntIndex( ) );
