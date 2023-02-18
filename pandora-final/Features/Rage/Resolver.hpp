@@ -13,11 +13,12 @@ enum EResolverStages {
 };
 
 struct ResolverData_t {
+	float m_flPreviousAntiAimAngle = FLT_MAX;
 	void ResetMoveData( ) {
 		if( !m_vecLastMoveOrigin.IsZero( ) )
 			m_vecLastMoveOrigin.Init( );
 
-		if( m_flLastMoveBody != FLT_MAX )
+		if( !m_flLastMoveBody != FLT_MAX )
 			m_flLastMoveBody = FLT_MAX;
 
 		if( m_flLastMoveAnimTime != FLT_MAX )
