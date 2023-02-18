@@ -272,6 +272,11 @@ void Resolver::ResolveMove( AnimationRecord* pRecord ) {
 		resolverData.m_iMissedShotsLBY = 0;
 
 	pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget;
+
+	// record anti-aim angle
+	if (resolverData.m_flLastMoveBody != FLT_MAX) {
+		resolverData.m_flPreviousAntiAimAngle = pRecord->m_angEyeAngles.y;
+	}
 }
 
 void Resolver::ResolveAir(AnimationRecord* pRecord) {
