@@ -11,24 +11,6 @@ Resolver g_Resolver;
 void Resolver::UpdateLBYPrediction(AnimationRecord* pRecord) {
 	auto& resolverData = m_arrResolverData.at(pRecord->m_pEntity->EntIndex());
 
-	// check if LBY has updated
-	if (resolverData.m_flPreviousLowerBodyYaw != FLT_MAX && fabsf(pRecord->m_flLowerBodyYawTarget - resolverData.m_flPreviousLowerBodyYaw) > 30.f) {
-		resolverData.m_vecLastRealOrigin = pRecord->m_vecOrigin;
-	}
-
-	// update LBY prediction data
-	resolverData.m_flPreviousLowerBodyYaw = pRecord->m_flLowerBodyYawTarget;
-	resolverData.m_flLastLbyActivity = pRecord->m_flCycle;
-
-	// check if LBY and real angles are too different
-	float flAngleDiff = fabsf(NormalizeYaw(pRecord->m_flLowerBodyYawTarget - pRecord->m_angEyeAngles.y));
-	if (flAngleDiff > 30.f) {
-		Vector vecRealOrigin = resolverData.m_vecLastRealOrigin;
-		if (vecRealOrigin.IsZero()) {
-			// if we don't have the real origin yet, use predicted origin
-			vecRealOrigin = pRecord->m_vecOrigin + (pRecord->m_vecVelocity * g_pGlobalVars->interval_per_tick);
-		}
-
 	if( !pRecord )
 		return;
 
@@ -278,28 +260,35 @@ void Resolver::ResolveStand(AnimationRecord* pRecord) {
 	}
 }
 
-void Resolver::ResolveMove( AnimationRecord* pRecord ) {
-	auto& resolverData = m_arrResolverData.at( pRecord->m_pEntity->EntIndex( ) );
+void Resolver::ResolveMove(AnimationRecord* pRecord) {
+	auto& resolverData = m_arrResolverData.at(pRecord->m_pEntity->EntIndex());
 
 	resolverData.m_flLastMoveBody = pRecord->m_flLowerBodyYawTarget;
 	resolverData.m_vecLastMoveOrigin = pRecord->m_vecOrigin;
 	resolverData.m_flLastMoveAnimTime = pRecord->m_flAnimationTime;
 
 	// we saw him move again, let's repredict and allow shooting at lby flicks!
-	if( pRecord->m_vecVelocity.Length2D( ) >= 25.f )
+	if (pRecord->m_vecVelocity.Length2D() >= 25.f)
 		resolverData.m_iMissedShotsLBY = 0;
+
+	// check for fake angle
+	if (resolverData.m_flPreviousAntiAimAngle != FLT_MAX && resolverData.m_flLastMoveBody != FLT_MAX) {
+		float flDelta = fabs(NormalizeYaw(resolverData.m_flPreviousAntiAimAngle - resolverData.m_flLastMoveBody));
+		if (flDelta > 30.f) {
+			// fake angle detected
+			pRecord->m_angEyeAngles.y = resolverData.m_flPreviousAntiAimAngle;
+			return;
+		}
+	}
 
 	pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget;
 
-<<<<<<< HEAD
 	// record anti-aim angle
 	if (resolverData.m_flLastMoveBody != FLT_MAX) {
 		resolverData.m_flPreviousAntiAimAngle = pRecord->m_angEyeAngles.y;
 	}
-=======
-	UpdateLBYPrediction( pRecord );
->>>>>>> 4a584b04dfa870e45f99f4f292c0b757a7c4b4d0
 }
+
 
 
 void Resolver::ResolveAir(AnimationRecord* pRecord) {
