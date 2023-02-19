@@ -142,43 +142,55 @@ void Resolver::UpdateResolverStage( AnimationRecord* pRecord ) {
 	}
 }
 
-void Resolver::ResolveBrute( AnimationRecord* pRecord ) {
-	auto& resolverData = m_arrResolverData.at( pRecord->m_pEntity->EntIndex( ) );
-	auto pLocal = C_CSPlayer::GetLocalPlayer( );
-	if( !pLocal )
+void Resolver::ResolveBrute(AnimationRecord* pRecord) {
+	auto& resolverData = m_arrResolverData.at(pRecord->m_pEntity->EntIndex());
+	auto pLocal = C_CSPlayer::GetLocalPlayer();
+	if (!pLocal)
 		return;
 
 	// reset move data here, we won't be working with it anyway
-	resolverData.ResetMoveData( );
+	resolverData.ResetMoveData();
 
 	QAngle angAway;
-	pLocal->IsDead( ) ? Vector( 0, 180, 0 ) : Math::VectorAngles( pLocal->m_vecOrigin( ) - pRecord->m_vecOrigin, angAway );
-	
-	const float flFreestandYaw = ResolveAntiFreestand( pRecord );
-
-	switch( resolverData.m_iMissedShots % 7 ) {
-	case 0:
-		pRecord->m_angEyeAngles.y = flFreestandYaw != FLT_MAX ? flFreestandYaw : angAway.y + 180.f;
-		break;
-	case 1:
-		pRecord->m_angEyeAngles.y = angAway.y + 180.f;
-		break;
-	case 2:
-		pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget;
-		break;
-	case 3:
-		pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget + 180.f;
-		break;
-	case 4:
-		pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget + 110.f;
-		break;
-	case 5:
-		pRecord->m_angEyeAngles.y = pRecord->m_flLowerBodyYawTarget - 110.f;
-		break;
-	case 6:
-		pRecord->m_angEyeAngles.y = angAway.y;
-		break;
+	Vector vFakeOrigin;
+	if (pLocal->IsDead()) {
+		vFakeOrigin = pRecord->m_vecOrigin;
+		vFakeOrigin.z += 64.f; // fake origin is above corpse
+		Math::VectorAngles(Vector(0, 180, 0), angAway);
 	}
+	else {
+		vFakeOrigin = pLocal->m_vecOrigin() + Vector(0, 0, 64.f);
+		angAway = pLocal->m_angEyeAngles();
+	}
+
+	// compute angles between fake and real positions
+	QAngle angDiff = Math::CalcAngle(vFakeOrigin, pRecord->m_vecOrigin);
+
+	// calculate abs yaw diff between fake and real eye angles
+	float flAbsYawDiff = std::abs(Math::AngleDiff(angAway.yaw, pRecord->m_angEyeAngles.yaw));
+
+	// check if player is using LBY or not
+	bool bIsUsingLBY = false;
+	float flLBYDelta = std::abs(Math::AngleDiff(pRecord->m_flLowerBodyYawTarget, pRecord->m_angEyeAngles.yaw));
+	if (flLBYDelta > 35.f && flLBYDelta < 155.f)
+		bIsUsingLBY = true;
+
+	// if using LBY, add LBY offset to angle difference
+	if (bIsUsingLBY)
+		angDiff.yaw += pRecord->m_flLowerBodyYawTarget;
+
+	// clamp yaw angle difference to [-180, 180]
+	Math::NormalizeAngles(angDiff);
+
+	// if yaw angle difference is larger than threshold, mark as resolved
+	if (std::abs(angDiff.yaw) > 35.f) {
+		resolverData.m_bResolved = true;
+		resolverData.m_flResolvedYaw = angDiff.yaw;
+		resolverData.m_flResolvedLBY = pRecord->m_flLowerBodyYawTarget;
+	}
+
+	// set player's fake angles
+	pRecord->m_angEyeAngles = angAway - angDiff;
 }
 
 // todo - michal;
