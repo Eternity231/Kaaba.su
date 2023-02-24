@@ -74,6 +74,24 @@ namespace Math
 		matrix[2][3] = pos.z;
 	}
 
+	inline void NormalizeAngles(QAngle& angles)
+	{
+		while (angles.x > 89.0f)
+			angles.x -= 180.0f;
+
+		while (angles.x < -89.0f)
+			angles.x += 180.0f;
+
+		while (angles.y > 180.0f)
+			angles.y -= 360.0f;
+
+		while (angles.y < -180.0f)
+			angles.y += 360.0f;
+
+		angles.z = 0.0f;
+	}
+
+
 	__forceinline static Vector MatrixGetOrigin(const matrix3x4_t& src) {
 		return { src[0][3], src[1][3], src[2][3] };
 	}
